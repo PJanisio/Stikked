@@ -43,8 +43,7 @@ class Spamadmin extends CI_Controller
 
         if ($pastes_to_delete) {
             foreach (explode(' ', $pastes_to_delete) as $pid) {
-                $this->db->where('pid', $pid);
-                $this->db->delete('pastes');
+            $this->pastes->delete_pastes($pid);
             }
             redirect(site_url('spamadmin/' . $this->uri->segment(2)));
         }
@@ -58,11 +57,24 @@ class Spamadmin extends CI_Controller
     {
         $this->load->model('pastes');
         $ip_address = $this->uri->segment(2);
+        $data['pastes'] = '';
+        $data = $this->pastes->getSpamLists('spamadmin/' . $ip_address, $seg = 3, $ip_address);
 
         if ($this->input->post('confirm_remove') && $ip_address != '') {
             $this->db->where('ip_address', $ip_address);
             $this->db->delete('pastes');
+
             $paste_count = $this->db->affected_rows();
+
+            if ($data['pastes'] != '') {
+
+                foreach ($data['pastes'] as $trends) {
+                    //when removing paste, lets remove them from trending
+                    $this->db->where('paste_id', $trends['pid']);
+                    $this->db->delete('trending');
+                }
+            }
+
 
             if ($this->input->post('block_ip')) {
                 $query = $this->db->get_where('blocked_ips', array(
